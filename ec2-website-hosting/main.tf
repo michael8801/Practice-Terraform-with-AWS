@@ -6,7 +6,8 @@ module "ec2" {
   ami           = var.ami
   volume_size   = var.volume_size
   user_data     = file("${path.module}/user-data.sh")
+  iam_instance_profile = aws_iam_instance_profile.ec2_backup_profile.name
 
-  subnet_id       = aws_subnet.public_subnet_tf[0].id
+  subnet_id       = module.vpc.public_subnets[0]
   security_groups = [aws_security_group.web_server_sg_tf.id]
 }

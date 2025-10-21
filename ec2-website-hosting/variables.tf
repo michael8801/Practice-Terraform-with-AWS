@@ -25,3 +25,12 @@ variable "domain_name" {
 variable "hosted_zone_name" {
   type = string
 }
+
+variable "vpc_cidr" {
+  type = string
+  default = "10.0.0.0/16"
+}
+
+variable "bucket_name" {
+
+}
