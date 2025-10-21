@@ -2,12 +2,10 @@ module "acm" {
   source  = "terraform-aws-modules/acm/aws"
   version = "~> 6.0.0"
 
-  providers = {
-    aws = aws.us_east_1
-  }
-
   domain_name = var.domain_name
   zone_id     = data.aws_route53_zone.solar.zone_id
+
+  region = "us-east-1"
 
   validation_method = "DNS"
 

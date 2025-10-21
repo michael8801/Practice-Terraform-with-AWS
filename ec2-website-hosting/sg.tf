@@ -1,7 +1,7 @@
 resource "aws_security_group" "web_server_sg_tf" {
   name        = "${var.instance_name}-tf"
   description = "Allow HTTP, HTTPS, SSH to web server"
-  vpc_id      = aws_vpc.app_tf.id
+  vpc_id      = module.vpc.vpc_id
 
   ingress {
     description = "HTTPS ingress"

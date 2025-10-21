@@ -9,6 +9,7 @@ resource "aws_instance" "website" {
   key_name = data.aws_key_pair.course_tasks.key_name
 
   user_data = var.user_data
+  iam_instance_profile = var.iam_instance_profile
 
   root_block_device {
     volume_size = var.volume_size

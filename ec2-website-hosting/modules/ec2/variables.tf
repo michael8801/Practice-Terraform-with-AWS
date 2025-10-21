@@ -25,3 +25,7 @@ variable "subnet_id" {
 variable "volume_size" {
   type = number
 }
+
+variable "iam_instance_profile" {
+  type = string
+}
