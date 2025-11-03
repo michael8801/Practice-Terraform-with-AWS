@@ -59,7 +59,3 @@ variable "redis_port" {
   type = number
 }
 
-variable "redis_password" {
-  type      = string
-  sensitive = true
-}

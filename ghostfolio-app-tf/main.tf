@@ -10,7 +10,7 @@ module "ec2" {
   user_data = templatefile("${path.module}/user-data.sh.tpl", {
     redis_endpoint = aws_elasticache_replication_group.ghostfolio_redis.primary_endpoint_address
   })
-  iam_instance_profile = aws_iam_instance_profile.ec2_backup_profile.name
+  iam_instance_profile = module.ec2_ghostofolio_role.instance_profile_name
 
   subnet_id       = module.vpc.public_subnets[0]
   security_groups = [aws_security_group.web_server_sg_tf.id]

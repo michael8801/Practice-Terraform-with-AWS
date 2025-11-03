@@ -21,4 +21,3 @@ es_node_type            = "cache.t3.micro"
 es_parameter_group_name = "default.redis7"
 redis_engine_version    = "7.1"
 redis_port              = 6379
-redis_password          = "syvkUdXsi9d83djas"

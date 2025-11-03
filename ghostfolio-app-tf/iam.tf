@@ -1,70 +1,97 @@
-data "aws_iam_policy_document" "ec2_trust" {
-  statement {
-    sid     = "EC2AssumeRole"
-    actions = ["sts:AssumeRole"]
+module "cw_logs_policy" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-policy"
 
-    principals {
-      type        = "Service"
-      identifiers = ["ec2.amazonaws.com"]
+  name        = "cw-logs-permissions"
+  path        = "/"
+  description = "Policy for CW Agent on EC2"
+
+  policy = <<-EOF
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": [
+                    "logs:PutLogEvents",
+                    "logs:DescribeLogStreams",
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup"
+                ],
+                "Effect": "Allow",
+                "Resource": "*",
+                "Sid": "WriteLogs"
+            }
+        ]
+    }
+  EOF
+
+  tags = {
+    Terraform   = "true"
+  }
+}
+
+module "s3_backup_policy" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-policy"
+
+  name        = "s3-backup-permissions"
+  path        = "/"
+  description = "Policy for accesing S3 from EC2"
+
+  policy = <<-EOF
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "s3:GetBucketLocation",
+                "Effect": "Allow",
+                "Resource": "arn:aws:s3:::pg-dumps-from-ec2-pg-tf",
+                "Sid": "BucketMeta"
+            },
+            {
+                "Action": [
+                    "s3:PutObjectTagging",
+                    "s3:PutObject",
+                    "s3:AbortMultipartUpload"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:s3:::pg-dumps-from-ec2-pg-tf/*",
+                "Sid": "WriteObjects"
+            }
+        ]
+    }
+  EOF
+
+  tags = {
+    Terraform   = "true"
+  }
+}
+
+
+module "ec2_ghostofolio_role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role"
+
+  name = "ec2-ghostofolio-role"
+
+  trust_policy_permissions = {
+    TrustRoleAndServiceToAssume = {
+      actions = [
+        "sts:AssumeRole",
+      ]
+      principals = [{
+        type = "Service"
+        identifiers = [
+          "ec2.amazonaws.com",
+        ]
+      }]
     }
   }
-}
 
-resource "aws_iam_role" "ec2_ghostofolio_role" {
-  name               = "ec2-ghostofolio-role"
-  assume_role_policy = data.aws_iam_policy_document.ec2_trust.json
-}
-
-
-data "aws_iam_policy_document" "s3_backup_permissions" {
-  # Bucket-level
-  statement {
-    sid       = "BucketMeta"
-    actions   = ["s3:GetBucketLocation"]
-    resources = [aws_s3_bucket.pg_dumps.arn]
+  policies = {
+    s3-backup-permissions      = module.s3_backup_policy.arn
+    cw-logs-permissions = module.cw_logs_policy.arn
   }
 
-  # Object-level: allow uploads anywhere in the bucket
-  statement {
-    sid = "WriteObjects"
-    actions = [
-      "s3:PutObject",
-      "s3:AbortMultipartUpload",
-      "s3:PutObjectTagging"
-    ]
-    resources = ["${aws_s3_bucket.pg_dumps.arn}/*"]
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
   }
-
-}
-
-data "aws_iam_policy_document" "cw_logs_permissions" {
-
-  statement {
-    sid = "WriteLogs"
-    actions = [
-      "logs:CreateLogGroup",
-      "logs:CreateLogStream",
-      "logs:PutLogEvents",
-      "logs:DescribeLogStreams"
-    ]
-    resources = ["*"]
-  }
-
-}
-
-resource "aws_iam_role_policy" "attach_s3_permissions" {
-  name   = "s3-backup-permissions"
-  role   = aws_iam_role.ec2_ghostofolio_role.id
-  policy = data.aws_iam_policy_document.s3_backup_permissions.json
-}
-
-resource "aws_iam_role_policy" "attach_cw_logs_permissions" {
-  name   = "cw-logs-permissions"
-  role   = aws_iam_role.ec2_ghostofolio_role.id
-  policy = data.aws_iam_policy_document.cw_logs_permissions.json
-}
-
-resource "aws_iam_instance_profile" "ec2_backup_profile" {
-  name = "ec2-db-backup-profile"
-  role = aws_iam_role.ec2_ghostofolio_role.name
 }
