@@ -27,5 +27,12 @@ variable "volume_size" {
 }
 
 variable "iam_instance_profile" {
-  type = string
+  type    = string
+  default = null
 }
+
+variable "enable_eip" {
+  type    = bool
+  default = true
+}
+

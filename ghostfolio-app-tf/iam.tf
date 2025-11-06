@@ -1,5 +1,5 @@
 module "cw_logs_policy" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-policy"
+  source = "terraform-aws-modules/iam/aws//modules/iam-policy"
 
   name        = "cw-logs-permissions"
   path        = "/"
@@ -25,12 +25,12 @@ module "cw_logs_policy" {
   EOF
 
   tags = {
-    Terraform   = "true"
+    Terraform = "true"
   }
 }
 
 module "s3_backup_policy" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-policy"
+  source = "terraform-aws-modules/iam/aws//modules/iam-policy"
 
   name        = "s3-backup-permissions"
   path        = "/"
@@ -61,13 +61,13 @@ module "s3_backup_policy" {
   EOF
 
   tags = {
-    Terraform   = "true"
+    Terraform = "true"
   }
 }
 
 
 module "ec2_ghostofolio_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role"
+  source = "terraform-aws-modules/iam/aws//modules/iam-role"
 
   name = "ec2-ghostofolio-role"
 
@@ -86,8 +86,8 @@ module "ec2_ghostofolio_role" {
   }
 
   policies = {
-    s3-backup-permissions      = module.s3_backup_policy.arn
-    cw-logs-permissions = module.cw_logs_policy.arn
+    s3-backup-permissions = module.s3_backup_policy.arn
+    cw-logs-permissions   = module.cw_logs_policy.arn
   }
 
   tags = {

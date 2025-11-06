@@ -59,3 +59,51 @@ variable "redis_port" {
   type = number
 }
 
+variable "db_identifier" {
+  type = string
+}
+
+variable "db_name" {
+  type = string
+}
+
+variable "db_engine_version" {
+  type = string
+}
+
+variable "db_username" {
+  type = string
+}
+
+variable "instance_class" {
+  type = string
+}
+
+variable "db_port" {
+  type = number
+}
+
+variable "storage_size" {
+  type = number
+}
+
+variable "db_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "bastion_ami" {
+  type = string
+}
+
+variable "bastion_instance_type" {
+  type = string
+}
+
+variable "bastion_volume_size" {
+  type = number
+}
+
+variable "env" {
+  type = string
+}
