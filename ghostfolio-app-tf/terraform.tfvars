@@ -10,6 +10,7 @@ volume_size   = 15
 hosted_zone_name = "solar.pp.ua."
 domain_name      = "solar.pp.ua"
 
+
 # S3
 bucket_name = "pg-dumps-from-ec2-pg-tf"
 
@@ -21,3 +22,18 @@ es_node_type            = "cache.t3.micro"
 es_parameter_group_name = "default.redis7"
 redis_engine_version    = "7.1"
 redis_port              = 6379
+
+# RDS
+db_engine_version = "17.6"
+db_identifier     = "ghostfolio-rds"
+db_name           = "ghostfolioo"
+db_username       = "ghost"
+db_port           = 5432
+instance_class    = "db.t4g.micro"
+storage_size      = 7
+
+bastion_instance_type = "t3.micro"
+bastion_ami           = "ami-004e960cde33f9146"
+bastion_volume_size   = 8
+
+env = "dev"

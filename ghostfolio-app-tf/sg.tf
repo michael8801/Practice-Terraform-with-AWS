@@ -31,6 +31,7 @@ resource "aws_security_group" "web_server_sg_tf" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  
 }
 
 resource "aws_security_group" "elasticache_redis_sg_tf" {
@@ -39,9 +40,40 @@ resource "aws_security_group" "elasticache_redis_sg_tf" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    description = "Redis ingress"
-    from_port   = 6379
-    to_port     = 6379
+    description     = "Redis ingress"
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [aws_security_group.web_server_sg_tf.id]
+  }
+}
+
+resource "aws_security_group" "rds_postgres_sg_tf" {
+  name        = "${var.db_identifier}-tf"
+  description = "Allow 5432 to RDS database"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description = "Postgres ingress"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    security_groups = [
+      aws_security_group.web_server_sg_tf.id,
+      aws_security_group.bastion_host_sg_tf.id
+    ]
+  }
+}
+
+resource "aws_security_group" "bastion_host_sg_tf" {
+  name        = "bastion-${var.instance_name}-tf"
+  description = "Allow 22 to Bastion"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description = "SSH allow"
+    from_port   = 22
+    to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

@@ -1,4 +1,4 @@
-resource "aws_elasticache_replication_group" "ghostfolio_redis" {
+/* resource "aws_elasticache_replication_group" "ghostfolio_redis" {
   replication_group_id = var.cluster_id
   description          = "Ghostfolio Redis cluster"
 
@@ -29,3 +29,4 @@ output "redis_endpoint" {
   value = aws_elasticache_replication_group.ghostfolio_redis.primary_endpoint_address
   description = "Address of a primary node in Redis cluster"
 }
+ */

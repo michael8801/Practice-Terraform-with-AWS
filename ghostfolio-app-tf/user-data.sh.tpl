@@ -12,43 +12,54 @@ BACKUP_SCRIPT="/home/ubuntu/backup_postgres.sh"
 ENV_FILE="/app/ghostfolio/.env"
 COMPOSE_FILE="docker/docker-compose.yml"
 
-sudo apt update
-sudo apt install nginx certbot python3-certbot-nginx unzip -y
+# nginx and certbot installation
+apt update
+apt install nginx certbot python3-certbot-nginx unzip -y
 
 # aws cli installation
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
 
-
 # CW Agent installation 
-sudo wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
-sudo dpkg -i amazon-cloudwatch-agent.deb
+wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
+dpkg -i amazon-cloudwatch-agent.deb
 
 # docker installation
-sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release -y
+apt-get install apt-transport-https ca-certificates curl gnupg lsb-release -y
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
 $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+apt-get update
+apt-get install docker-ce docker-ce-cli containerd.io -y
   
-
+# App deploy
 mkdir app && cd app
 git clone https://github.com/ghostfolio/ghostfolio.git
 cd ghostfolio
 cp .env.example .env
 
-# Setup Redis connection
-sed -i "s|^REDIS_HOST=.*|REDIS_HOST=${redis_endpoint}|" $ENV_FILE
-sed -i '/^REDIS_PASSWORD=/d' $ENV_FILE
+# Remove Postgres from docker compose 
+sed -i '/^\s\{6\}postgres:/,+1d' $COMPOSE_FILE
+sed -i '/^\s\{2\}postgres:/,/^\s*$/d' $COMPOSE_FILE
+sed -i '/^\s\{0\}volumes:/,+1d' $COMPOSE_FILE
 
-sed -i '/^\s\{6\}redis:/,+1d' $COMPOSE_FILE
-sed -i '/^\s\{2\}redis:/,/^\s*volumes:$/ { /^\s*volumes:$/!d }' $COMPOSE_FILE
+
+
+# Fill .env with RDS values
+sed -i "s|^POSTGRES_DB=.*|POSTGRES_DB=${db_name}|" $ENV_FILE
+sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=${db_user}|" $ENV_FILE
+sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${db_password}|" $ENV_FILE
+sed -i "/^DATABASE_URL=/ s|@postgres:5432|@${db_host_address}:5432|" $ENV_FILE
 
 sudo docker compose -f $COMPOSE_FILE up -d
 
-sudo systemctl start nginx
+# Data migration from postgres container to RDS instance is done manually
+#sudo docker exec -i $CONTAINER_NAME pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -F c > ~/user_data_migration_backup.sql
+#pg_restore "host=${db_host_address} port=5432 user=${db_user} dbname=${db_name} sslmode=require" -f ~/user_data_migration_backup.sql
+
+# Configure Nginx 
+systemctl start nginx
 cat << 'EOF' > /etc/nginx/sites-available/"$DOMAIN"
 server {
     listen 80;
@@ -65,17 +76,18 @@ server {
 }
 EOF
 
-sudo ln -s /etc/nginx/sites-available/"$DOMAIN" /etc/nginx/sites-enabled/
-sudo systemctl restart nginx
-sudo systemctl enable nginx
+ln -s /etc/nginx/sites-available/"$DOMAIN" /etc/nginx/sites-enabled/
+systemctl restart nginx
+systemctl enable nginx
 
-sudo certbot --nginx -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive
-sudo systemctl restart nginx
+# Configure TLS certificate for domain
+certbot --nginx -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive
+systemctl restart nginx
 
-sudo usermod -aG docker ubuntu
+# Add ubuntu user to docker group
+usermod -aG docker ubuntu
 
-
-# Nginx logs transfering 
+# Nginx logs transfering from local to CloudWatch logs
 cat << 'EOF' > /opt/aws/amazon-cloudwatch-agent/bin/cloudwatch-config.json
 {
   "logs": {
@@ -101,29 +113,5 @@ cat << 'EOF' > /opt/aws/amazon-cloudwatch-agent/bin/cloudwatch-config.json
 }
 EOF
 
-sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
-sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/bin/cloudwatch-config.json
-
-
-# PostgreSQL dumps from EC2 to S3
-cat > "$BACKUP_SCRIPT" <<'EOF'
-
-APP_DIR=/app/ghostfolio
-CONTAINER_NAME=gf-postgres
-STAMP="$(date +%F_%H%M%S)"
-DUMP_OUT="pg-$${STAMP}.dump.gz"
-S3_BUCKET="pg-dumps-from-ec2-pg-tf"
-
-export $(grep -v '^#' $${APP_DIR}/.env | grep -E '^POSTGRES' | xargs)
-
-/usr/bin/sudo /usr/bin/docker exec -i $CONTAINER_NAME pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -F c | gzip | aws s3 cp - s3://$${S3_BUCKET}/$${DUMP_OUT}
-EOF
-
-chmod +x "$BACKUP_SCRIPT"
-sudo touch /var/log/pg-backup.log
-
-cat << 'EOF' > /etc/cron.d/backup_postgres
-0 3 * * * root /home/ubuntu/backup_postgres.sh >> /var/log/pg-backup.log 2>&1
-EOF
-
-sudo systemctl restart cron
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/bin/cloudwatch-config.json

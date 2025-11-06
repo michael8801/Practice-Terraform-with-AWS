@@ -2,8 +2,8 @@ resource "aws_instance" "website" {
   ami           = var.ami
   instance_type = var.instance_type
 
-  vpc_security_group_ids      = var.security_groups
-  subnet_id                   = var.subnet_id
+  vpc_security_group_ids = var.security_groups
+  subnet_id              = var.subnet_id
 
   key_name = data.aws_key_pair.course_tasks.key_name
 
