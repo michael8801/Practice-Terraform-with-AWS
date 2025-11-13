@@ -39,12 +39,11 @@ git clone https://github.com/ghostfolio/ghostfolio.git
 cd ghostfolio
 cp .env.example .env
 
-# Remove Postgres from docker compose 
-sed -i '/^\s\{6\}postgres:/,+1d' $COMPOSE_FILE
+# Remove Postgres and Redis from docker compose 
+sed -i '/^\s\{4\}depends_on:/,+4d' $COMPOSE_FILE
 sed -i '/^\s\{2\}postgres:/,/^\s*$/d' $COMPOSE_FILE
 sed -i '/^\s\{0\}volumes:/,+1d' $COMPOSE_FILE
-
-
+sed -i '/^\s\{2\}redis:/,/^\s*volumes:$/ { /^\s*volumes:$/!d }' $COMPOSE_FILE
 
 # Fill .env with RDS values
 sed -i "s|^POSTGRES_DB=.*|POSTGRES_DB=${db_name}|" $ENV_FILE
@@ -52,11 +51,16 @@ sed -i "s|^POSTGRES_USER=.*|POSTGRES_USER=${db_user}|" $ENV_FILE
 sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${db_password}|" $ENV_FILE
 sed -i "/^DATABASE_URL=/ s|@postgres:5432|@${db_host_address}:5432|" $ENV_FILE
 
-sudo docker compose -f $COMPOSE_FILE up -d
-
 # Data migration from postgres container to RDS instance is done manually
 #sudo docker exec -i $CONTAINER_NAME pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -F c > ~/user_data_migration_backup.sql
 #pg_restore "host=${db_host_address} port=5432 user=${db_user} dbname=${db_name} sslmode=require" -f ~/user_data_migration_backup.sql
+
+# Fill .env with ElastiCache Redis values
+sed -i "s|^REDIS_HOST=.*|REDIS_HOST=${redis_endpoint}|" $ENV_FILE
+sed -i '/^REDIS_PASSWORD=/d' $ENV_FILE
+
+# Deploy docker compose with just app
+sudo docker compose -f $COMPOSE_FILE up -d
 
 # Configure Nginx 
 systemctl start nginx
@@ -79,10 +83,6 @@ EOF
 ln -s /etc/nginx/sites-available/"$DOMAIN" /etc/nginx/sites-enabled/
 systemctl restart nginx
 systemctl enable nginx
-
-# Configure TLS certificate for domain
-certbot --nginx -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive
-systemctl restart nginx
 
 # Add ubuntu user to docker group
 usermod -aG docker ubuntu

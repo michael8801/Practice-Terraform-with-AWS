@@ -3,19 +3,19 @@ resource "aws_security_group" "web_server_sg_tf" {
   description = "Allow HTTP, HTTPS, SSH to web server"
   vpc_id      = module.vpc.vpc_id
 
-  ingress {
+/*   ingress {
     description = "HTTPS ingress"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-  }
+  } */
   ingress {
     description = "HTTP ingress"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [ aws_security_group.alb_sg_tf.id ]
   }
   ingress {
     description = "SSH ingress"
@@ -75,6 +75,33 @@ resource "aws_security_group" "bastion_host_sg_tf" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "alb_sg_tf" {
+  name        = "alb-${var.instance_name}"
+  description = "Allow 80 and 443 to ALB"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    description = "HTTPS ingress"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "HTTP ingress"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }

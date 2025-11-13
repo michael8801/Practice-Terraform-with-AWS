@@ -107,3 +107,11 @@ variable "bastion_volume_size" {
 variable "env" {
   type = string
 }
+
+variable "asg_instance_type" {
+  type = string
+}
+
+variable "asg_image_id" {
+  
+}

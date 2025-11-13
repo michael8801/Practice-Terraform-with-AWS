@@ -6,7 +6,7 @@ module "ec2" {
   ami           = var.ami
   volume_size   = var.volume_size
   user_data = templatefile("${path.module}/user-data.sh.tpl", {
-    redis_endpoint  = "null"
+    redis_endpoint = aws_elasticache_replication_group.ghostfolio_redis.primary_endpoint_address
     db_name         = var.db_name
     db_user         = var.db_username
     db_password     = var.db_password
