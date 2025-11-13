@@ -32,7 +32,6 @@ resource "aws_eip_association" "eip_assoc" {
 data "aws_key_pair" "course_tasks" {
   key_name           = "CourseTasks"
   include_public_key = true
-
 }
 
 output "public_ip" {

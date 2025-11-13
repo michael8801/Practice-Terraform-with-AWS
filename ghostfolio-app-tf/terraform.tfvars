@@ -3,7 +3,7 @@ region = "eu-central-1"
 # EC2
 ami           = "ami-0a116fa7c861dd5f9"
 instance_type = "t3.medium"
-instance_name = "app-tf"
+instance_name = "ghostfolio-app"
 volume_size   = 15
 
 # Route53
@@ -37,3 +37,7 @@ bastion_ami           = "ami-004e960cde33f9146"
 bastion_volume_size   = 8
 
 env = "dev"
+
+# ASG
+asg_image_id = "ami-004514a763965b3ab"
+asg_instance_type = "t3.small"
